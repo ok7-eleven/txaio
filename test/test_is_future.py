@@ -24,52 +24,33 @@
 #
 ###############################################################################
 
+import pytest
+import txaio
 
-def run_once():
+
+def test_is_future_generic(framework):
     '''
-    A helper that takes one trip through the event-loop to process any
-    pending Futures. This is a no-op for Twisted, because you don't
-    need to use the event-loop to get callbacks to happen in Twisted.
+    Returning an immediate value from as_future
     '''
+    f = txaio.create_future('result')
 
-    import txaio
-    if txaio.using_twisted:
-        return
-
-    try:
-        import asyncio
-        from asyncio.test_utils import run_once as _run_once
-        return _run_once(asyncio.get_event_loop())
-
-    except ImportError:
-        import trollius as asyncio
-        # let any trollius import error out; if we're not using
-        # twisted, and have no asyncio *and* no trollius, that's a
-        # problem.
-
-        # copied from asyncio.testutils because trollius has no
-        # testutils"
-
-        # just like modern asyncio.testutils.run_once does it...
-        loop = asyncio.get_event_loop()
-        loop.stop()
-        loop.run_forever()
-        asyncio.gather(*asyncio.Task.all_tasks())
+    assert txaio.is_future(f)
 
 
-def await(future):
+def test_is_future_coroutine(framework_aio):
     '''
-    Essentially just a way to call "run_until_complete" that becomes a
-    no-op if we're using Twisted.
+    Returning an immediate value from as_future
     '''
+    pytest.importorskip('asyncio')  # 'aio' might be using trollius
+    from asyncio import coroutine
 
-    import txaio
-    if txaio.using_twisted:
-        return
+    @coroutine
+    def some_coroutine():
+        yield 'answer'
+    obj = some_coroutine()
+    assert txaio.is_future(obj)
 
-    try:
-        import asyncio
-    except ImportError:
-        import trollius as asyncio
 
-    asyncio.get_event_loop().run_until_complete(future)
+def test_is_called(framework):
+    f = txaio.create_future_success(None)
+    assert txaio.is_called(f)

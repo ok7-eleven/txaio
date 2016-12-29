@@ -24,52 +24,30 @@
 #
 ###############################################################################
 
+from __future__ import print_function
 
-def run_once():
-    '''
-    A helper that takes one trip through the event-loop to process any
-    pending Futures. This is a no-op for Twisted, because you don't
-    need to use the event-loop to get callbacks to happen in Twisted.
-    '''
-
-    import txaio
-    if txaio.using_twisted:
-        return
-
-    try:
-        import asyncio
-        from asyncio.test_utils import run_once as _run_once
-        return _run_once(asyncio.get_event_loop())
-
-    except ImportError:
-        import trollius as asyncio
-        # let any trollius import error out; if we're not using
-        # twisted, and have no asyncio *and* no trollius, that's a
-        # problem.
-
-        # copied from asyncio.testutils because trollius has no
-        # testutils"
-
-        # just like modern asyncio.testutils.run_once does it...
-        loop = asyncio.get_event_loop()
-        loop.stop()
-        loop.run_forever()
-        asyncio.gather(*asyncio.Task.all_tasks())
+import txaio
 
 
-def await(future):
-    '''
-    Essentially just a way to call "run_until_complete" that becomes a
-    no-op if we're using Twisted.
-    '''
+def test_log_stdlib(framework_aio):
+    # for cases when we never call start_logging(), ensure we didn't
+    # no-op out the info messages.
+    import logging
 
-    import txaio
-    if txaio.using_twisted:
-        return
+    lg = logging.getLogger()
+    lg.setLevel(logging.INFO)
+    records = []
+
+    class TestHandler(logging.Handler):
+        def emit(self, record):
+            records.append(record.msg)
+    handler = TestHandler()
+    lg.addHandler(handler)
 
     try:
-        import asyncio
-    except ImportError:
-        import trollius as asyncio
+        log = txaio.make_logger()
+        log.info("foo={foo}", foo='bar')
+    finally:
+        lg.removeHandler(handler)
 
-    asyncio.get_event_loop().run_until_complete(future)
+    assert 'foo=bar' in records

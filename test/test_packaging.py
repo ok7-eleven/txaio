@@ -24,52 +24,30 @@
 #
 ###############################################################################
 
+import sys
+import tempfile
+import subprocess
+from shutil import rmtree
 
-def run_once():
-    '''
-    A helper that takes one trip through the event-loop to process any
-    pending Futures. This is a no-op for Twisted, because you don't
-    need to use the event-loop to get callbacks to happen in Twisted.
-    '''
+import pytest
 
-    import txaio
-    if txaio.using_twisted:
-        return
+import txaio
 
+
+def test_sdist():
+    if not hasattr(subprocess, 'check_output'):
+        pytest.skip()
+    subprocess.check_output([sys.executable, 'setup.py', 'sdist'], cwd='..')
+    tmp = tempfile.mkdtemp()
     try:
-        import asyncio
-        from asyncio.test_utils import run_once as _run_once
-        return _run_once(asyncio.get_event_loop())
-
-    except ImportError:
-        import trollius as asyncio
-        # let any trollius import error out; if we're not using
-        # twisted, and have no asyncio *and* no trollius, that's a
-        # problem.
-
-        # copied from asyncio.testutils because trollius has no
-        # testutils"
-
-        # just like modern asyncio.testutils.run_once does it...
-        loop = asyncio.get_event_loop()
-        loop.stop()
-        loop.run_forever()
-        asyncio.gather(*asyncio.Task.all_tasks())
-
-
-def await(future):
-    '''
-    Essentially just a way to call "run_until_complete" that becomes a
-    no-op if we're using Twisted.
-    '''
-
-    import txaio
-    if txaio.using_twisted:
-        return
-
-    try:
-        import asyncio
-    except ImportError:
-        import trollius as asyncio
-
-    asyncio.get_event_loop().run_until_complete(future)
+        subprocess.check_output([
+            sys.executable,
+            '-m',
+            'pip',
+            'install',
+            '--target', tmp,
+            '--no-deps',
+            '../dist/txaio-{}.tar.gz'.format(txaio.__version__),
+        ])
+    finally:
+        rmtree(tmp)

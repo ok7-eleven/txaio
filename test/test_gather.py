@@ -2,7 +2,7 @@
 #
 # The MIT License (MIT)
 #
-# Copyright (c) Tavendo GmbH
+# Copyright (c) Crossbar.io Technologies GmbH
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -29,7 +29,7 @@ import txaio
 from util import await
 
 
-def test_gather_two():
+def test_gather_two(framework):
     '''
     Wait for two Futures.
     '''
@@ -60,9 +60,8 @@ def test_gather_two():
         # fail.printTraceback()
     txaio.add_callbacks(f2, done, error)
 
-    await(f0)
-    await(f1)
-    await(f2)
+    for f in [f0, f1, f2]:
+        await(f)
 
     assert len(results) == 1
     assert len(errors) == 0
@@ -72,7 +71,7 @@ def test_gather_two():
     assert calls[1] == (tuple(), dict())
 
 
-def test_gather_no_consume():
+def test_gather_no_consume(framework):
     '''
     consume_exceptions=False
     '''
@@ -96,8 +95,8 @@ def test_gather_no_consume():
     txaio.add_callbacks(f1, done, error)
     txaio.add_callbacks(f2, done, error)
 
-    # FIXME more testing annoyance; the propogated errors are raise
-    # out of "run_until_complete()" as well; fix util.py
+    # FIXME more testing annoyance; the propogated errors are raised
+    # out of "run_until_complete()" as well; fix util.py?
     for f in [f0, f1, f2]:
         try:
             await(f)
