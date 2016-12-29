@@ -1,3 +1,9 @@
+txaio (2.6.0-1) unstable; urgency=low
+
+  * new upstream
+
+ -- Michael Mattice <mmattice@ok7-eleven.com>  Thu, 29 Dec 2016 13:34:55 -0600
+
 txaio (1.0.0-1) unstable; urgency=low
 
   * source package automatically created by stdeb 0.6.0+git
